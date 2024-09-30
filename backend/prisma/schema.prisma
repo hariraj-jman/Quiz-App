@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// prisma/schema.prisma
+
+model Admin {
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  password        String
+  email           String            @unique
+  quizzes         Quiz[]
+  EmailAssignment EmailAssignment[]
+}
+
+model User {
+  id          Int        @id @default(autoincrement())
+  username    String     @unique
+  password    String
+  email       String     @unique
+  userQuizzes UserQuiz[]
+}
+
+model Quiz {
+  id               Int               @id @default(autoincrement())
+  title            String
+  description      String
+  createdBy        Int
+  shareableCode    Int?              @unique
+  responses        Int?
+  assignmentType   AssignmentType
+  admin            Admin             @relation(fields: [createdBy], references: [id])
+  questions        Question[]
+  userQuizzes      UserQuiz[]
+  emailAssignments EmailAssignment[]
+}
+
+model Question {
+  id           Int          @id @default(autoincrement())
+  quizId       Int
+  questionText String
+  questionType String
+  quiz         Quiz         @relation(fields: [quizId], references: [id])
+  options      Option[]
+  userAnswers  UserAnswer[]
+}
+
+model Option {
+  id         Int          @id @default(autoincrement())
+  questionId Int
+  optionText String
+  isCorrect  Boolean
+  question   Question     @relation(fields: [questionId], references: [id])
+  UserAnswer UserAnswer[]
+}
+
+model UserQuiz {
+  id          Int          @id @default(autoincrement())
+  userId      Int
+  quizId      Int
+  score       Int?
+  completedAt DateTime?
+  user        User         @relation(fields: [userId], references: [id])
+  quiz        Quiz         @relation(fields: [quizId], references: [id])
+  userAnswers UserAnswer[]
+
+  @@unique([userId, quizId])
+}
+
+model UserAnswer {
+  id         Int      @id @default(autoincrement())
+  userQuizId Int
+  questionId Int
+  optionId   Int
+  userQuiz   UserQuiz @relation(fields: [userQuizId], references: [id])
+  question   Question @relation(fields: [questionId], references: [id])
+  option     Option   @relation(fields: [optionId], references: [id])
+}
+
+model EmailAssignment {
+  id      Int    @id @default(autoincrement())
+  email   String
+  quizId  Int
+  adminId Int
+  admin   Admin  @relation(fields: [adminId], references: [id])
+  quiz    Quiz   @relation(fields: [quizId], references: [id])
+}
+
+enum AssignmentType {
+  ANYONE_WITH_CODE
+  SPECIFIC_EMAILS
+}
